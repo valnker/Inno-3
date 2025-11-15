@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Story, WordBubbleInfo, WordCounts } from '../types';
 import { WordBubble } from './WordBubble';
 import { WordStats } from './WordStats';
-import { getStoryCover } from '../services/geminiService';
-
 
 interface StoryViewerProps {
   story: Story;
@@ -15,29 +13,6 @@ interface StoryViewerProps {
 export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onBack, wordCounts, onWordTapped }) => {
   const [bubbleInfo, setBubbleInfo] = useState<WordBubbleInfo | null>(null);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
-  const [isCoverLoading, setIsCoverLoading] = useState(true);
-  const [coverError, setCoverError] = useState<string | null>(null);
-
-
-  useEffect(() => {
-    const fetchCover = async () => {
-      setIsCoverLoading(true);
-      setCoverError(null);
-      setCoverImageUrl(null);
-      try {
-        const url = await getStoryCover(story);
-        setCoverImageUrl(url);
-      } catch (err) {
-        console.error("Failed to load story cover", err);
-        setCoverError("The cover art couldn't be loaded right now.");
-      } finally {
-        setIsCoverLoading(false);
-      }
-    };
-
-    fetchCover();
-  }, [story]);
 
   const handleWordClick = (e: React.MouseEvent<HTMLSpanElement>, word: string, context: string) => {
     e.stopPropagation();
@@ -146,26 +121,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onBack, wordCou
         </div>
 
         <article className="bg-white rounded-lg shadow-lg p-4 sm:p-8 relative">
-          <div className="mb-8 h-80 bg-gray-100 rounded-lg flex items-center justify-center">
-            {isCoverLoading && (
-              <div className="flex flex-col items-center gap-2 text-gray-500">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500"></div>
-                <p>Drawing the cover...</p>
-              </div>
-            )}
-            {coverError && !isCoverLoading && (
-                <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
-                  <p className="font-semibold mb-1">Oh no!</p>
-                  <p>{coverError}</p>
-                </div>
-            )}
-            {coverImageUrl && !isCoverLoading && (
-              <img 
-                src={coverImageUrl} 
-                alt={`${story.title} cover`}
-                className="w-full h-full object-cover rounded-lg shadow-md"
-              />
-            )}
+           <div className="mb-8 h-80 bg-amber-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <img 
+                    src={story.coverImage} 
+                    alt={`${story.title} cover`}
+                    className="w-full h-full object-cover rounded-lg shadow-md"
+                />
           </div>
           <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 bg-white rounded-l-lg flex justify-center py-8">
             <div className="w-px bg-red-300 h-full"></div>

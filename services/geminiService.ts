@@ -1,7 +1,6 @@
 // Fix: Added GenerateContentResponse to imports for proper typing.
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 import { decode, decodeAudioData } from '../utils/audio';
-import type { Story } from "../types";
 
 const API_KEY = process.env.API_KEY;
 
@@ -14,7 +13,6 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 // In-memory caches for the current session to avoid re-processing from localStorage
 const imageCache = new Map<string, string>();
 const audioCache = new Map<string, AudioBuffer>();
-const coverImageCache = new Map<number, string>();
 
 // Words for feelings, states, or abstract ideas.
 // These will be generated as simple, context-free cartoon illustrations.
@@ -85,8 +83,8 @@ export async function generateImageForWord(word: string, context: string): Promi
     // For fantasy concepts, generate a beautiful, imaginative illustration.
     prompt = `A beautiful, whimsical, and colorful illustration of "${word}", for a children's storybook. The style should be magical and imaginative. No words or text in the image.`;
   } else {
-    // Default to a contextual illustration only for words that are not in the lists (e.g., actions, specific descriptions).
-    prompt = `A simple, cute, and colorful cartoon illustration of "${word}" in the context of the story: "${context}". No words or text in the image.`;
+    // Default to a context-free illustration for any other word.
+    prompt = `A simple, cute, and colorful cartoon illustration of "${word}", for a child. The style should be simple and easy for a child to understand. No words or text in the image.`;
   }
 
   const response: GenerateContentResponse = await ai.models.generateContent({
@@ -184,98 +182,58 @@ export async function generateAudioForWord(word: string): Promise<AudioBuffer> {
     throw new Error("Audio generation failed.");
 }
 
-// Fix: Added summarizeStoryForImagePrompt to generate a descriptive prompt for cover images.
+// Fix: Implemented summarizeStoryForImagePrompt to generate a cover prompt from a story.
 export async function summarizeStoryForImagePrompt(title: string, content: string): Promise<string> {
-  const prompt = `You are an expert at creating concise, visually descriptive prompts for an AI image generator. Your task is to create a prompt for a beautiful illustration for a children's story titled "${title}".
-  Your single most important task is to generate a prompt that results in a purely visual image with ABSOLUTELY NO TEXT.
-  The final image MUST NOT contain any words, letters, or numbers. Your generated prompt must not ask for any text, and should describe a scene, not a book cover.
+    const model = 'gemini-2.5-flash';
+    const prompt = `You are an expert at creating image generation prompts for children's storybooks.
+    Summarize the following story into a simple, descriptive, and visually rich prompt for an AI image generator.
+    The prompt should capture the main characters, setting, and mood of the story in a single, concise sentence.
+    Focus on concrete, visual details. Do not include the story title in the prompt.
+    The final output should be ONLY the prompt string, with no extra text or labels.
 
-  Based on the story content below, summarize the key visual elements to create a single, beautiful illustration prompt.
-  Focus on the main character, setting, and a key action or mood. Be descriptive and whimsical.
-  
-  Story Content:
-  ---
-  ${content}
-  ---
-  
-  Provide a short, one-paragraph prompt for an image generator. Do not include the title of the story in the prompt you generate.`;
+    Story Title: "${title}"
+    Story Content:
+    ---
+    ${content}
+    ---
+  `;
 
-  const response: GenerateContentResponse = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-      temperature: 0.8,
-      maxOutputTokens: 150,
-    }
-  });
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model,
+        contents: prompt,
+    });
 
-  return response.text.trim();
+    return response.text.trim().replace(/`/g, '');
 }
 
-// Fix: Implemented getStoryCover to automatically generate a cover image for a story.
-export async function getStoryCover(story: Story): Promise<string> {
-    // 1. Check in-memory cache
-    if (coverImageCache.has(story.id)) {
-        return coverImageCache.get(story.id)!;
-    }
-
-    // 2. Check localStorage
-    const storageKey = `bookibee-cover-${story.id}`;
-    try {
-        const storedCover = localStorage.getItem(storageKey);
-        if (storedCover) {
-            coverImageCache.set(story.id, storedCover);
-            return storedCover;
-        }
-    } catch (error) {
-        console.warn("Could not read cover from localStorage", error);
-    }
-
-    // 3. Generate cover
-    const imagePrompt = await summarizeStoryForImagePrompt(story.title, story.content.join('\n'));
-    
-    const imageUrl = await generateStoryCover(imagePrompt);
-
-    // Cache it
-    coverImageCache.set(story.id, imageUrl);
-    try {
-        localStorage.setItem(storageKey, imageUrl);
-    } catch (error) {
-        console.warn("Could not write cover to localStorage", error);
-    }
-
-    return imageUrl;
-}
-
-// Fix: Implemented generateStoryCover to generate a cover image from a given prompt.
+// Fix: Implemented generateStoryCover to generate an image from a prompt.
 export async function generateStoryCover(prompt: string): Promise<string> {
-    const fullPrompt = `A beautiful, whimsical, and colorful illustration for a children's story, in a friendly, vibrant, storybook art style.
+    const fullPrompt = `A beautiful, whimsical, and colorful illustration for a children's storybook cover. The style should be magical and imaginative, suitable for a book cover. The scene should depict: "${prompt}". No words or text in the image.`;
 
-CRITICAL INSTRUCTION: This is a purely visual artwork for a children's story. The image MUST NOT contain any text, words, letters, or numbers. It should be a scene from the story, not a book cover. Do not render any writing on the image.
-
-PROMPT: ${prompt}`;
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: fullPrompt,
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [{ text: fullPrompt }],
+        },
         config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg',
-            aspectRatio: '4:3', // A nice ratio for covers
+            responseModalities: [Modality.IMAGE],
         },
     });
 
-    const base64ImageBytes: string | undefined = response.generatedImages?.[0]?.image.imageBytes;
-    if (base64ImageBytes) {
-        return `data:image/jpeg;base64,${base64ImageBytes}`;
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+            return imageUrl;
+        }
     }
 
-    throw new Error("Cover image generation failed.");
+    throw new Error("Story cover generation failed: no image data in response.");
 }
 
 // Fix: Implemented clearCaches to clear all in-memory session caches.
 export function clearCaches(): void {
     imageCache.clear();
     audioCache.clear();
-    coverImageCache.clear();
     console.log("Session caches cleared.");
 }

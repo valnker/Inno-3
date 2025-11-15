@@ -5,6 +5,7 @@ export interface Story {
   content: string[];
   color: string;
   hoverColor: string;
+  coverImage: string;
 }
 
 export interface WordBubbleInfo {

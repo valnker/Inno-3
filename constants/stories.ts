@@ -8,6 +8,7 @@ export const stories: Story[] = [
     level: 'Easy',
     color: 'bg-lime-200',
     hoverColor: 'hover:bg-lime-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkWDP7z4ACABfCAQWf50lcAAAAAElFTkSuQmCC',
     content: [
       'Pip is a small, [[happy puppy]]. He has soft brown fur and a tail that is always wagging. Every morning, Pip wakes up and licks his owner\'s face. He loves to play with his favorite [[red ball]] in the big, green garden.',
       'After playing, Pip is very thirsty. He drinks a lot of water from his [[blue bowl]]. Then, he finds a sunny spot on the floor and takes a long nap. Pip dreams of chasing butterflies and playing with his friends at the park.'
@@ -19,6 +20,7 @@ export const stories: Story[] = [
     level: 'Easy',
     color: 'bg-teal-200',
     hoverColor: 'hover:bg-teal-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mOkL9j4z4ACABbCAQF3nB9VAAAAAElFTkSuQmCC',
     content: [
         'Milo was a big, [[fluffy monster]]. He was not scary. He had soft blue fur and three silly eyes. Milo lived [[under the bed]] of a girl named Lily. He did not want to scare her. He just wanted to tell [[funny jokes]].',
         'One night, Lily heard a small giggle. She looked under her bed and saw Milo. He told her a joke about a bouncing carrot. Lily laughed and laughed. From that day on, Milo and Lily were the [[best friends]].'
@@ -30,6 +32,7 @@ export const stories: Story[] = [
     level: 'Easy',
     color: 'bg-indigo-200',
     hoverColor: 'hover:bg-indigo-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8X8j4z4ACABbCAQG7c126AAAAAElFTkSuQmCC',
     content: [
         'It was a cold [[winter day]], and three friends were excited. Barnaby the bear found a small [[pine tree]] to decorate. Squeaky the squirrel found shiny, [[red ornaments]]. And Rosie the rabbit baked some warm, [[tasty cookies]] with sprinkles.',
         'They put the ornaments on the tree until it sparkled. They ate the cookies with hot cocoa. They sang [[happy songs]] together under the twinkling tree. It was the best holiday party ever.'
@@ -42,6 +45,7 @@ export const stories: Story[] = [
     level: 'Medium',
     color: 'bg-amber-200',
     hoverColor: 'hover:bg-amber-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8V8/4z4ACABbCAQHyXkIeAAAAAElFTkSuQmCC',
     content: [
       'Once, there was a fluffy cat named Pat. Pat loved to play outside in the sunny garden. He would chase butterflies and roll in the soft [[green grass]]. His fur was as white as a cloud, and his eyes were bright green like [[fresh leaves]].',
       'One afternoon, the sky turned grey. Big, dark clouds gathered overhead. Pat looked up, wiggling his nose. A tiny drop of water landed right on his pink nose! Plip! Then another, and another. It was starting to rain.',
@@ -55,6 +59,7 @@ export const stories: Story[] = [
     level: 'Medium',
     color: 'bg-rose-200',
     hoverColor: 'hover:bg-rose-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8f8P4z4ACABbCAQGrCXN8AAAAAElFTkSuQmCC',
     content: [
       "Leo and his big sister Mia loved to play at home. Leo had a big box of [[building blocks]]. Mia had a set of [[bright paints]] and lots of paper. They could play for hours, making wonderful things in their sunny playroom.",
       "Today, Leo decided to build the tallest tower in the world. He stacked red blocks, blue blocks, and yellow blocks. Higher and higher it went! His little cat, Ginger, watched with wide eyes, purring at the very [[tall tower]].",
@@ -68,6 +73,7 @@ export const stories: Story[] = [
     level: 'Medium',
     color: 'bg-blue-200',
     hoverColor: 'hover:bg-blue-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8d8v4z4ACABbCAQG8kL4qAAAAAElFTkSuQmCC',
     content: [
       'One morning, Lily woke up and did not feel right. Her head felt a little achy, and her throat was scratchy. When she tried to talk, her voice sounded funny. "Mom," she whispered, "I think I have a [[sore throat]]." Her nose felt stuffy, and she had to [[sneeze]] loudly, "Achoo!"',
       'Her mom came into the room with a worried look. She gently placed her hand on Lily\'s forehead. "You feel a bit warm," she said. She used a [[thermometer]] to check, and it showed a small fever. "No school for you today. You need to rest and get better."',
@@ -81,6 +87,7 @@ export const stories: Story[] = [
     level: 'Medium',
     color: 'bg-orange-200',
     hoverColor: 'hover:bg-orange-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8d8/4z4ACABbCAQHw03WRAAAAAElFTkSuQmCC',
     content: [
       'In Malaysia, food is a wonderful adventure. Aiman and his family went to a bustling [[night market]], called a "[[pasar malam]]." The air was filled with delicious smells of cooking food. Lights from the stalls twinkled like stars, and everywhere you looked, people were smiling and eating.',
       'Their first stop was for satay. These were small pieces of chicken grilled on a stick. Aiman dipped his satay into a sweet and nutty [[peanut sauce]]. "This is so yummy!" he exclaimed, his mouth full. The smoky flavor of the grilled chicken was his absolute favorite.',
@@ -94,6 +101,7 @@ export const stories: Story[] = [
     level: 'Medium',
     color: 'bg-pink-200',
     hoverColor: 'hover:bg-pink-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8Z8j4z4ACABbCAQGd8T7VAAAAAElFTkSuQmCC',
     content: [
       'Lucy found an old map. It was for her backyard! A big red X showed where the treasure was. "Let\'s find the treasure," she whispered to her [[teddy bear]], Barnaby. She put on her hat and was ready to go.',
       'First, she had to cross the big lawn, her "Grassy Sea." She walked carefully, pretending bugs were saying hello. Then, she climbed up the "Mountain of Swings." She went up the ladder and slid down with a happy "Whee!"',
@@ -107,6 +115,7 @@ export const stories: Story[] = [
     level: 'Hard',
     color: 'bg-purple-200',
     hoverColor: 'hover:bg-purple-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8Z8/4z4ACABbCAQGr/GqFAAAAAElFTkSuQmCC',
     content: [
       'Rina lived in a small village in Kelantan, Malaysia, where the wind always seemed to be whispering stories. One day, while helping her grandfather in his workshop, she found a magnificent kite. It was a "[[Wau Bulan]]," a [[moon-kite]], shaped like a crescent moon and decorated with intricate floral patterns. Her grandfather told her it was a very special, ancient kite.',
       'She took the wau to a wide-open [[paddy field]]. As she let it fly, a strong gust of wind caught it. But instead of just flying, the wau tugged her gently into the air! Rina held on tight, her heart pounding with a mix of fear and exhilaration. She was flying over the green fields, soaring like a bird.',
@@ -120,6 +129,7 @@ export const stories: Story[] = [
     level: 'Hard',
     color: 'bg-yellow-200',
     hoverColor: 'hover:bg-yellow-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8V88Azz8ACgAD/qY2gZ4AAAAASUVORK5CYII=',
     content: [
       'Deep in the big [[Rainforests of Borneo]], lived a kind orangutan named Otan. He had long, [[reddish-brown hair]] and friendly eyes. All the animals in the jungle liked him. Otan had a special secret. He took care of the "[[Heart of the Forest]]," a giant, glowing flower. It only opened under a [[full moon]] and kept the whole forest alive and healthy.',
       'One year, it didn\'t rain for a long time. The rivers got smaller, and the leaves on the trees turned brown. The forest became very quiet. All the animals were scared. Otan knew the Heart of the Forest was getting weak. He had to take it to a secret waterfall, a special place with lots of water to make the flower strong again.',
@@ -133,6 +143,7 @@ export const stories: Story[] = [
     level: 'Hard',
     color: 'bg-teal-200',
     hoverColor: 'hover:bg-teal-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mOkL9j4z4ACABbCAQF3nB9VAAAAAElFTkSuQmCC',
     content: [
       "Leo had a magical globe. When he spun it and pointed to a place, his room would shimmer and whoosh, he'd be there! First, he pointed to France. In a blink, he was in Paris, standing under the giant, sparkly [[Eiffel Tower]]. He ate a delicious [[croissant]] that was flaky and buttery.",
       "Next, he spun the globe to Egypt. The air became hot and sandy. Before him stood the [[Great Pyramids]], bigger than mountains! A friendly guide let him ride a gentle [[camel]] with long eyelashes. It swayed side to side as it walked across the golden desert sand.",
@@ -146,6 +157,7 @@ export const stories: Story[] = [
     level: 'Hard',
     color: 'bg-gray-200',
     hoverColor: 'hover:bg-gray-300',
+    coverImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8f8/4z4ACABbCAQGBCFakAAAAAElFTkSuQmCC',
     content: [
       "Fino was a small robot made of shiny silver parts and many wires. He could solve hard math problems in a flash and name all the stars. But Fino couldn't understand one thing: feelings. To him, words like 'happy' or 'sad' were just [[words he did not understand]].",
       "One day, Fino found a little bird with a broken wing. The bird chirped, a sad, quiet sound. His [[computer brain]] told him: 'Small animal, hurt, might not be okay.' But then, something new happened inside his [[robot brain]]. He felt something new and warm inside his wires. He wanted to help.",

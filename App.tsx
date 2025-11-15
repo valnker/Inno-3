@@ -1,74 +1,26 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { stories } from './constants/stories';
 import type { Story, WordCounts } from './types';
 import { StoryViewer } from './components/StoryViewer';
-import { clearCaches, getStoryCover } from './services/geminiService';
+import { clearCaches } from './services/geminiService';
 
 const StoryCard: React.FC<{ story: Story; onSelect: (story: Story) => void }> = ({ story, onSelect }) => {
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCover = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const url = await getStoryCover(story);
-        setCoverUrl(url);
-      } catch (err) {
-        console.error(`Failed to load cover for "${story.title}"`, err);
-        setError("Couldn't load cover");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCover();
-  }, [story]);
-
   return (
     <div
       onClick={() => onSelect(story)}
-      className="cursor-pointer group transition-transform duration-300 hover:!scale-105 hover:z-10 w-[200px]"
+      className="cursor-pointer group transition-all duration-300 hover:!scale-105 hover:z-10 w-[240px] bg-white rounded-2xl shadow-lg hover:shadow-2xl flex flex-col"
       role="button"
       aria-label={`Read story: ${story.title}`}
     >
-        <div 
-          className="relative w-full h-[230px] bg-amber-100 drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
-          style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-        >
-            <div className="relative w-full h-full">
-                {isLoading && (
-                  <div className="w-full h-full bg-amber-200 flex items-center justify-center">
-                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-800"></div>
-                  </div>
-                )}
-                {error && !isLoading && (
-                  <div className="w-full h-full bg-red-100 flex flex-col items-center justify-center text-red-600 p-4 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    <p className="text-xs font-semibold">{error}</p>
-                  </div>
-                )}
-                {coverUrl && !isLoading && (
-                  <>
-                    <img src={coverUrl} alt={`${story.title} cover`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                    {/* Add a subtle overlay on the image to darken it for text contrast */}
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
-                  </>
-                )}
-                
-                {/* Centered Text Overlay - always on top */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
-                    <h3 className="text-lg font-bold text-white" style={{textShadow: '1px 1px 4px rgba(0,0,0,0.8)'}}>{story.title}</h3>
-                    <span className={`mt-2 px-2 py-0.5 text-xs font-bold rounded ${story.color} text-gray-800 shadow-md`}>
-                        {story.level}
-                    </span>
-                </div>
-            </div>
-        </div>
+      <div className="w-full h-[180px] rounded-t-2xl overflow-hidden relative">
+        <img src={story.coverImage} alt={`Cover for ${story.title}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+      </div>
+      <div className="p-4 flex-grow flex flex-col">
+        <h3 className="text-md font-bold text-gray-800 flex-grow">{story.title}</h3>
+        <span className={`mt-2 self-start px-3 py-1 text-xs font-bold rounded-full ${story.color} text-gray-700`}>
+          {story.level}
+        </span>
+      </div>
     </div>
   );
 };
@@ -154,8 +106,8 @@ const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelec
           <p className="text-lg text-amber-800 mt-2">Buzz into a reading adventure!</p>
         </header>
 
-        <main className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 justify-items-center">
+        <main className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 gap-y-12 justify-items-center">
               {sortedStories.map((story) => (
                 <StoryCard key={story.id} story={story} onSelect={onSelectStory} />
               ))}
