@@ -1,10 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { stories } from './constants/stories';
 import type { Story, WordCounts } from './types';
 import { StoryViewer } from './components/StoryViewer';
-import { clearCaches } from './services/geminiService';
+import { clearCaches, summarizeStoryForImagePrompt, generateStoryCover } from './services/geminiService';
+import { CoverEditModal } from './components/CoverEditModal';
 
-const StoryCard: React.FC<{ story: Story; onSelect: (story: Story) => void }> = ({ story, onSelect }) => {
+const StoryCard: React.FC<{ story: Story; onSelect: (story: Story) => void; onEditCover: (story: Story) => void; }> = ({ story, onSelect, onEditCover }) => {
+  const isPlaceholder = story.coverImage.length < 200;
+
   return (
     <div
       onClick={() => onSelect(story)}
@@ -13,7 +16,23 @@ const StoryCard: React.FC<{ story: Story; onSelect: (story: Story) => void }> = 
       aria-label={`Read story: ${story.title}`}
     >
       <div className="w-full h-[180px] rounded-t-2xl overflow-hidden relative">
-        <img src={story.coverImage} alt={`Cover for ${story.title}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+        {isPlaceholder ? (
+            <div className={`w-full h-full ${story.color} animate-pulse`}></div>
+        ) : (
+            <img src={story.coverImage} alt={`Cover for ${story.title}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+        )}
+         <button 
+            onClick={(e) => {
+                e.stopPropagation(); // Prevent card click event
+                onEditCover(story);
+            }}
+            className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm text-gray-700 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white focus:opacity-100"
+            aria-label={`Edit cover for ${story.title}`}
+        >
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+        </button>
       </div>
       <div className="p-4 flex-grow flex flex-col">
         <h3 className="text-md font-bold text-gray-800 flex-grow">{story.title}</h3>
@@ -71,32 +90,100 @@ const CloudSvg = ({ className, style }: { className?: string; style?: React.CSSP
 );
 
 const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelectStory }) => {
+  const [storiesData, setStoriesData] = useState<Story[]>(stories);
+  const [storyToEdit, setStoryToEdit] = useState<Story | null>(null);
+
   const levelOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
-  const sortedStories = [...stories].sort((a, b) => levelOrder[a.level] - levelOrder[b.level]);
+  const sortedStories = [...storiesData].sort((a, b) => levelOrder[a.level] - levelOrder[b.level]);
+
+  useEffect(() => {
+    const generateCovers = async () => {
+      const storiesWithRealCovers = new Map<number, Story>();
+
+      const coverPromises = stories.map(async (story) => {
+        const storageKey = `bookibee-cover-${story.id}`;
+        try {
+          const storedImage = localStorage.getItem(storageKey);
+          if (storedImage) {
+            storiesWithRealCovers.set(story.id, { ...story, coverImage: storedImage });
+            return;
+          }
+        } catch (e) {
+          console.warn('Could not read from localStorage', e);
+        }
+
+        try {
+          const prompt = await summarizeStoryForImagePrompt(story.title, story.content.join('\n'));
+          const imageUrl = await generateStoryCover(prompt);
+
+          try {
+            localStorage.setItem(storageKey, imageUrl);
+          } catch (e) {
+            console.warn('Could not write to localStorage', e);
+          }
+          storiesWithRealCovers.set(story.id, { ...story, coverImage: imageUrl });
+        } catch (error) {
+          console.error(`Failed to generate cover for "${story.title}":`, error);
+          storiesWithRealCovers.set(story.id, story);
+        }
+      });
+      
+      await Promise.allSettled(coverPromises);
+      
+      const updatedStories = stories.map(s => storiesWithRealCovers.get(s.id) || s);
+      setStoriesData(updatedStories);
+    };
+
+    generateCovers();
+  }, []);
+
+  const handleEditCover = (story: Story) => {
+    setStoryToEdit(story);
+  };
+
+  const handleCoverUpdate = (imageUrl: string) => {
+    if (!storyToEdit) return;
+
+    const updatedStories = storiesData.map(s => 
+      s.id === storyToEdit.id ? { ...s, coverImage: imageUrl } : s
+    );
+    setStoriesData(updatedStories);
+
+    try {
+      localStorage.setItem(`bookibee-cover-${storyToEdit.id}`, imageUrl);
+    } catch (e) {
+      console.warn('Could not save new cover to localStorage', e);
+    }
+    
+    setStoryToEdit(null);
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-sky-200 to-cyan-100 p-4 sm:p-8 overflow-hidden">
       {/* ===== DECORATIONS ===== */}
-      {/* Stars */}
       <StarIcon className="absolute top-[10%] left-[15%] w-10 h-10 animate-twinkle" style={{animationDelay: '0s'}} />
       <StarIcon className="absolute top-[20%] right-[10%] w-12 h-12 animate-twinkle" style={{animationDelay: '1s'}} />
       <StarIcon className="absolute bottom-[40%] left-[5%] w-8 h-8 animate-twinkle" style={{animationDelay: '2s'}} />
       <StarIcon className="absolute bottom-[15%] right-[25%] w-10 h-10 animate-twinkle" style={{animationDelay: '0.5s'}} />
       <StarIcon className="absolute top-[45%] left-[40%] w-6 h-6 animate-twinkle" style={{animationDelay: '1.5s'}} />
-
-      {/* Bees */}
       <BeeSvg className="absolute top-[15%] left-[5%] w-24 h-24 opacity-20 animate-float" style={{animationDelay: '1.2s', transform: 'rotate(-12deg)'}} />
       <BeeSvg className="absolute bottom-[10%] right-[10%] w-32 h-32 opacity-20 animate-float" style={{animationDelay: '0.2s', transform: 'rotate(6deg)'}} />
       <BeeSvg className="absolute top-[60%] right-[20%] w-20 h-20 opacity-20 animate-float" style={{animationDelay: '2.2s', transform: 'rotate(12deg)'}} />
       <BeeSvg className="absolute top-[50%] left-[25%] w-36 h-36 opacity-20 animate-float-slow" style={{animationDelay: '0.8s', transform: 'rotate(-5deg)'}} />
       <BeeSvg className="absolute bottom-[25%] left-[10%] w-28 h-28 opacity-20 animate-float-slow" style={{animationDelay: '1.8s', transform: 'rotate(15deg)'}} />
-
-      {/* Clouds */}
       <CloudSvg className="absolute top-[15%] -left-10 w-48 animate-float-slow" style={{animationDelay: '0.5s'}} />
       <CloudSvg className="absolute top-[30%] -right-12 w-56 animate-float-slow" style={{animationDelay: '1.5s'}}/>
       <CloudSvg className="absolute bottom-[20%] left-[20%] w-32 animate-float-slow" style={{animationDelay: '2.5s'}}/>
       {/* ======================= */}
       
+      {storyToEdit && (
+        <CoverEditModal
+          story={storyToEdit}
+          onClose={() => setStoryToEdit(null)}
+          onCoverUpdate={handleCoverUpdate}
+        />
+      )}
+
       <div className="relative z-20">
         <header className="text-center mb-16 pt-8">
           <div className="flex justify-center items-center gap-2 sm:gap-4">
@@ -109,7 +196,7 @@ const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelec
         <main className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 gap-y-12 justify-items-center">
               {sortedStories.map((story) => (
-                <StoryCard key={story.id} story={story} onSelect={onSelectStory} />
+                <StoryCard key={story.id} story={story} onSelect={onSelectStory} onEditCover={handleEditCover} />
               ))}
           </div>
         </main>
@@ -133,7 +220,6 @@ function App() {
   const handleBackToHome = () => {
     setSelectedStory(null);
     setWordCounts({}); // Reset counts when returning home
-    // Fix: Called clearCaches to utilize the imported function and clear session caches when returning to the home screen.
     clearCaches();
   };
 

@@ -182,33 +182,29 @@ export async function generateAudioForWord(word: string): Promise<AudioBuffer> {
     throw new Error("Audio generation failed.");
 }
 
-// Fix: Implemented summarizeStoryForImagePrompt to generate a cover prompt from a story.
+// Fix: Added summarizeStoryForImagePrompt to generate a concise image prompt from story content.
 export async function summarizeStoryForImagePrompt(title: string, content: string): Promise<string> {
-    const model = 'gemini-2.5-flash';
-    const prompt = `You are an expert at creating image generation prompts for children's storybooks.
-    Summarize the following story into a simple, descriptive, and visually rich prompt for an AI image generator.
-    The prompt should capture the main characters, setting, and mood of the story in a single, concise sentence.
-    Focus on concrete, visual details. Do not include the story title in the prompt.
-    The final output should be ONLY the prompt string, with no extra text or labels.
+  const prompt = `You are a creative assistant for a children's storybook app. Your task is to summarize a story into a concise, vivid, and child-friendly image prompt for generating a cover illustration. The prompt should capture the main character, the setting, and the key action or mood of the story.
 
-    Story Title: "${title}"
-    Story Content:
-    ---
-    ${content}
-    ---
-  `;
+Story Title: "${title}"
+Story Content:
+---
+${content}
+---
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
-        model,
-        contents: prompt,
-    });
+Based on the story, create a single, descriptive prompt for an image generator. The prompt should be in the style of "A beautiful, whimsical, and colorful illustration of...". Do not include any explanations, just the prompt itself.`;
 
-    return response.text.trim().replace(/`/g, '');
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+
+  return response.text.trim();
 }
 
-// Fix: Implemented generateStoryCover to generate an image from a prompt.
+// Fix: Added generateStoryCover to generate a cover image from a given prompt.
 export async function generateStoryCover(prompt: string): Promise<string> {
-    const fullPrompt = `A beautiful, whimsical, and colorful illustration for a children's storybook cover. The style should be magical and imaginative, suitable for a book cover. The scene should depict: "${prompt}". No words or text in the image.`;
+    const fullPrompt = `${prompt}. The style should be beautiful, whimsical, colorful, and suitable for a children's storybook cover. No words or text in the image.`;
 
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
@@ -223,8 +219,7 @@ export async function generateStoryCover(prompt: string): Promise<string> {
     for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
             const base64ImageBytes: string = part.inlineData.data;
-            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-            return imageUrl;
+            return `data:image/png;base64,${base64ImageBytes}`;
         }
     }
 
