@@ -1,0 +1,5 @@
+{
+  "name": "BookiBee: Interactive Story Reader for Kids",
+  "description": "Welcome to BookiBee! A fun, interactive reading website for children where they can pick a story, click on words to see a picture and hear the pronunciation. The app uses Gemini to generate images and audio on the fly.",
+  "requestFramePermissions": []
+}
