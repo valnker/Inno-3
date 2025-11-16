@@ -97,7 +97,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onS
                                 id="prompt-textarea"
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                className="w-full h-24 p-3 border border-gray-500 bg-gray-700 text-white placeholder-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
+                                className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
                                 placeholder="e.g., A brave little bee on a big adventure"
                                 aria-label="Story prompt input"
                             />

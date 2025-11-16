@@ -5,7 +5,7 @@ import type { Story } from '../types';
 interface CoverEditModalProps {
   story: Story;
   onClose: () => void;
-  onCoverUpdate: (imageUrl: string) => void;
+  onCoverUpdate: (imageUrl: string) => boolean;
 }
 
 type ModalMode = 'options' | 'loadingSummary' | 'editingPrompt' | 'loadingImage' | 'loadingUpload' | 'error';
@@ -54,7 +54,11 @@ export const CoverEditModal: React.FC<CoverEditModalProps> = ({ story, onClose, 
         setError(null);
         try {
             const imageUrl = await generateStoryCover(prompt);
-            onCoverUpdate(imageUrl);
+            const success = onCoverUpdate(imageUrl);
+            if (!success) {
+                setError("Could not save the cover. The browser's storage might be full.");
+                setMode('error');
+            }
         } catch (err) {
             let message = 'Could not generate the cover image.';
             if (err instanceof Error) {
@@ -82,11 +86,22 @@ export const CoverEditModal: React.FC<CoverEditModalProps> = ({ story, onClose, 
             return;
         }
 
+        // Check file size (e.g., limit to 4MB) to prevent localStorage issues
+        if (file.size > 4 * 1024 * 1024) {
+            setError('This image is too large! Please choose a smaller file (under 4MB).');
+            setMode('error');
+            return;
+        }
+
         setMode('loadingUpload');
         const reader = new FileReader();
         reader.onload = () => {
             if (typeof reader.result === 'string') {
-                onCoverUpdate(reader.result);
+                const success = onCoverUpdate(reader.result);
+                if (!success) {
+                    setError("Could not save the cover. The browser's storage might be full.");
+                    setMode('error');
+                }
             } else {
                 setError('Could not process the image file.');
                 setMode('error');
