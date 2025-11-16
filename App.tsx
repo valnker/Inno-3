@@ -158,27 +158,33 @@ const App: React.FC = () => {
     });
   }, []);
   
-  const handleCoverUpdate = useCallback((imageUrl: string) => {
-    if (!coverEditStory) return;
+  const handleCoverUpdate = useCallback((imageUrl: string): boolean => {
+    if (!coverEditStory) return false;
 
     const storyId = coverEditStory.id;
-    setStories(prevStories => prevStories.map(story => 
-      story.id === storyId ? { ...story, coverImage: imageUrl } : story
-    ));
     
     try {
-        if (storyId > 1000) { // Assume user stories have high IDs
-            const userStories = JSON.parse(localStorage.getItem('bookibee-user-stories') || '[]');
-            const updatedUserStories = userStories.map((s: Story) => s.id === storyId ? { ...s, coverImage: imageUrl } : s);
-            localStorage.setItem('bookibee-user-stories', JSON.stringify(updatedUserStories));
-        } else {
-            localStorage.setItem(`bookibee-cover-${storyId}`, imageUrl);
-        }
+      if (storyId > 1000) { // Assume user stories have high IDs
+          const userStoriesJson = localStorage.getItem('bookibee-user-stories');
+          const userStories = userStoriesJson ? JSON.parse(userStoriesJson) : [];
+          const updatedUserStories = userStories.map((s: Story) => s.id === storyId ? { ...s, coverImage: imageUrl } : s);
+          localStorage.setItem('bookibee-user-stories', JSON.stringify(updatedUserStories));
+      } else {
+          localStorage.setItem(`bookibee-cover-${storyId}`, imageUrl);
+      }
+      
+      // If storage succeeds, then update state and close modal.
+      setStories(prevStories => prevStories.map(story => 
+        story.id === storyId ? { ...story, coverImage: imageUrl } : story
+      ));
+      
+      setCoverEditStory(null);
+      return true;
+
     } catch (e) {
-      console.warn('Could not save cover to localStorage', e);
+      console.error('Could not save cover to localStorage. Storage might be full.', e);
+      return false;
     }
-    
-    setCoverEditStory(null);
   }, [coverEditStory]);
 
   const handleStoryCreated = useCallback(async (storyData: Omit<Story, 'id' | 'color' | 'hoverColor' | 'coverImage'>) => {
@@ -305,57 +311,4 @@ const App: React.FC = () => {
                             aria-label="Edit cover"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                            </svg>
-                        </button>
-                        {story.id > 1000 && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setStoryToDelete(story);
-                                }}
-                                className="p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-700 hover:bg-red-500 hover:text-white transition-all"
-                                aria-label="Delete story"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-                </div>
-                <div className="p-4 flex-grow flex flex-col">
-                    <h3 className="text-lg font-bold text-gray-800 flex-grow">{story.title}</h3>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full self-start ${getLevelClasses(story.level)}`}>
-                        {story.level}
-                    </span>
-                </div>
-            </div>
-            ))}
-            <div
-                key="create-story"
-                className="group bg-white rounded-2xl shadow-lg cursor-pointer transform hover:-translate-y-2 transition-transform duration-300 overflow-hidden flex flex-col items-center justify-center border-4 border-dashed border-sky-300 hover:border-sky-400 hover:bg-sky-50 min-h-[224px]"
-                onClick={() => setIsCreateModalOpen(true)}
-                aria-label="Create a new story"
-                role="button"
-            >
-                <div className="text-sky-500 group-hover:text-sky-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                </div>
-                <p className="mt-4 text-lg font-bold text-gray-700">Create a New Story</p>
-            </div>
-        </div>
-      </main>
-
-       <footer className="text-center mt-8 sm:mt-12 pb-4 relative z-10">
-          <div className="inline-block bg-amber-200/50 text-amber-900 font-semibold px-6 py-3 rounded-full shadow-md">
-              <p>✨ Click on any word in a story to see a picture and hear how it's said!</p>
-          </div>
-      </footer>
-    </div>
-  );
-};
-
-export default App;
+                               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z
