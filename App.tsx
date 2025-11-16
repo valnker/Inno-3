@@ -5,6 +5,34 @@ import { StoryViewer } from './components/StoryViewer';
 import { clearCaches, summarizeStoryForImagePrompt, generateStoryCover } from './services/geminiService';
 import { CoverEditModal } from './components/CoverEditModal';
 
+// Helper to load all stories (default + user-created) and their saved covers from localStorage.
+const getInitialStories = (): Story[] => {
+  try {
+    const userStoriesJson = localStorage.getItem('bookibee-user-stories');
+    const userStories: Story[] = userStoriesJson ? JSON.parse(userStoriesJson) : [];
+    
+    // Combine default and user-created stories, ensuring no duplicates by ID
+    const allStories = [...stories, ...userStories];
+    const uniqueStoriesMap = new Map<number, Story>();
+    allStories.forEach(story => uniqueStoriesMap.set(story.id, story));
+    const uniqueStories = Array.from(uniqueStoriesMap.values());
+
+    // Apply saved covers to all stories. This makes them appear instantly on load.
+    return uniqueStories.map(story => {
+      const storedImage = localStorage.getItem(`bookibee-cover-${story.id}`);
+      if (storedImage) {
+        return { ...story, coverImage: storedImage };
+      }
+      return story;
+    });
+  } catch (e) {
+    console.warn('Could not read stories from localStorage on init', e);
+    // Fallback to just the default stories if localStorage fails.
+    return stories;
+  }
+};
+
+
 const StoryCard: React.FC<{ story: Story; onSelect: (story: Story) => void; onEditCover: (story: Story) => void; }> = ({ story, onSelect, onEditCover }) => {
   const isPlaceholder = story.coverImage.length < 200;
 
@@ -90,52 +118,52 @@ const CloudSvg = ({ className, style }: { className?: string; style?: React.CSSP
 );
 
 const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelectStory }) => {
-  const [storiesData, setStoriesData] = useState<Story[]>(stories);
+  const [storiesData, setStoriesData] = useState<Story[]>(getInitialStories());
   const [storyToEdit, setStoryToEdit] = useState<Story | null>(null);
 
   const levelOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
-  const sortedStories = [...storiesData].sort((a, b) => levelOrder[a.level] - levelOrder[b.level]);
+  const sortedStories = [...storiesData].sort((a, b) => {
+     const levelDiff = levelOrder[a.level] - levelOrder[b.level];
+     if (levelDiff !== 0) return levelDiff;
+     // Sort older stories first within the same level.
+     return a.id - b.id;
+  });
 
   useEffect(() => {
-    const generateCovers = async () => {
-      const storiesWithRealCovers = new Map<number, Story>();
+    const generateMissingCovers = async () => {
+      const storiesToUpdate = storiesData.filter(story => story.coverImage.length < 200);
 
-      const coverPromises = stories.map(async (story) => {
-        const storageKey = `bookibee-cover-${story.id}`;
-        try {
-          const storedImage = localStorage.getItem(storageKey);
-          if (storedImage) {
-            storiesWithRealCovers.set(story.id, { ...story, coverImage: storedImage });
-            return;
-          }
-        } catch (e) {
-          console.warn('Could not read from localStorage', e);
-        }
+      if (storiesToUpdate.length === 0) {
+        return; // All covers are already loaded or generated.
+      }
 
+      const newlyGeneratedCovers = new Map<number, string>();
+
+      const coverPromises = storiesToUpdate.map(async (story) => {
         try {
           const prompt = await summarizeStoryForImagePrompt(story.title, story.content.join('\n'));
           const imageUrl = await generateStoryCover(prompt);
-
-          try {
-            localStorage.setItem(storageKey, imageUrl);
-          } catch (e) {
-            console.warn('Could not write to localStorage', e);
-          }
-          storiesWithRealCovers.set(story.id, { ...story, coverImage: imageUrl });
+          localStorage.setItem(`bookibee-cover-${story.id}`, imageUrl);
+          newlyGeneratedCovers.set(story.id, imageUrl);
         } catch (error) {
           console.error(`Failed to generate cover for "${story.title}":`, error);
-          storiesWithRealCovers.set(story.id, story);
         }
       });
       
       await Promise.allSettled(coverPromises);
       
-      const updatedStories = stories.map(s => storiesWithRealCovers.get(s.id) || s);
-      setStoriesData(updatedStories);
+      if (newlyGeneratedCovers.size > 0) {
+        setStoriesData(currentStories =>
+          currentStories.map(s => {
+            const newCover = newlyGeneratedCovers.get(s.id);
+            return newCover ? { ...s, coverImage: newCover } : s;
+          })
+        );
+      }
     };
 
-    generateCovers();
-  }, []);
+    generateMissingCovers();
+  }, []); // Intentionally run only once on mount.
 
   const handleEditCover = (story: Story) => {
     setStoryToEdit(story);
@@ -157,6 +185,7 @@ const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelec
     
     setStoryToEdit(null);
   };
+
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-sky-200 to-cyan-100 p-4 sm:p-8 overflow-hidden">
@@ -194,7 +223,7 @@ const HomePage: React.FC<{ onSelectStory: (story: Story) => void }> = ({ onSelec
         </header>
 
         <main className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 gap-y-12 justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 gap-y-12 justify-items-center">
               {sortedStories.map((story) => (
                 <StoryCard key={story.id} story={story} onSelect={onSelectStory} onEditCover={handleEditCover} />
               ))}

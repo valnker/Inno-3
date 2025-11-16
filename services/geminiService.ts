@@ -1,6 +1,7 @@
 // Fix: Added GenerateContentResponse to imports for proper typing.
-import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import { decode, decodeAudioData } from '../utils/audio';
+import type { Story, ComprehensionQuestion } from '../types';
 
 const API_KEY = process.env.API_KEY;
 
@@ -21,7 +22,7 @@ const ABSTRACT_CONCEPT_WORDS = new Set([
   'kind', 'caring', 'empathy', 'busy', 'sleepy', 'hungry', 'thirsty',
   'funny', 'silly', 'proud', 'cozy', 'sick', 'better', 'fun', 'worried',
   'delicious', 'tasty', 'yummy', 'beautiful', 'great', 'perfect', 'bittersweet',
-  'feeling better', 'happy songs', 'funny jokes', 'sore throat', 'sneeze',
+  'feeling better', 'happy songs', 'funny jokes', 'sore throat',
   'words he did not understand', 'best friends', 'robot brain', 'computer brain'
 ]);
 
@@ -39,7 +40,7 @@ const REAL_WORLD_NOUNS = new Set([
   // People & Body Parts
   'face', 'tail', 'fur', 'eyes', 'nose', 'sister', 'dad', 'mom', 'parents', 'family', 'family picture', 'man', 'people', 'grandfather', 'guide', 'head', 'throat', 'voice', 'forehead', 'hand', 'hair', 'arms', 'beak', 'eyelashes',
   // Misc
-  'winter day', 'party', 'playroom', 'smile', 'hug', 'fever', 'school', 'nap', 'adventure', 'lights', 'stalls', 'stick', 'griddle', 'rainbow', 'bowl', 'spoon', 'feast', 'workshop', 'patterns', 'heart', 'peaks', 'team', 'home', 'light', 'room', 'Paris', 'Egypt', 'Japan', 'Brazil',
+  'winter day', 'party', 'playroom', 'smile', 'hug', 'fever', 'school', 'nap', 'adventure', 'lights', 'stalls', 'stick', 'griddle', 'rainbow', 'bowl', 'spoon', 'feast', 'workshop', 'patterns', 'heart', 'peaks', 'team', 'home', 'light', 'room', 'Paris', 'Egypt', 'Japan', 'Brazil', 'sneeze',
 ]);
 
 // Words for fantasy or magical things that do not exist in real life.
@@ -158,7 +159,7 @@ export async function generateAudioForWord(word: string): Promise<AudioBuffer> {
             responseModalities: [Modality.AUDIO],
             speechConfig: {
                 voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: 'Kore' },
+                    prebuiltVoiceConfig: { voiceName: 'Zephyr' },
                 },
             },
         },
@@ -225,6 +226,123 @@ export async function generateStoryCover(prompt: string): Promise<string> {
 
     throw new Error("Story cover generation failed: no image data in response.");
 }
+
+export async function generateStory(userPrompt: string): Promise<Omit<Story, 'id' | 'color' | 'hoverColor' | 'coverImage'>> {
+  const model = 'gemini-2.5-pro';
+
+  const instruction = `You are a creative and talented author who writes short stories for children aged 4-8. 
+  Your task is to generate a new story based on a user's prompt.
+  The story must be engaging, age-appropriate, and have a positive or gentle message.
+  You must return the story in a specific JSON format.
+  
+  The JSON object must contain three fields:
+  1.  "title": A creative and short title for the story (string).
+  2.  "level": The estimated reading difficulty. It MUST be one of three values: 'Easy', 'Medium', or 'Hard' (string).
+  3.  "content": The story text, split into an array of short paragraphs (string[]). Aim for 2-4 paragraphs.
+  
+  Analyze the user's prompt and create a story that is simple for 'Easy', has more complex sentences for 'Medium', and uses richer vocabulary for 'Hard'.
+  
+  User's prompt: "${userPrompt}"`;
+
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: instruction,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          level: { type: Type.STRING, enum: ['Easy', 'Medium', 'Hard'] },
+          content: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        },
+        required: ["title", "level", "content"]
+      }
+    }
+  });
+  
+  const jsonText = response.text.trim();
+  const storyData = JSON.parse(jsonText);
+
+  // Basic validation
+  if (!storyData.title || !storyData.level || !storyData.content || !Array.isArray(storyData.content)) {
+    throw new Error("Invalid story format received from API.");
+  }
+
+  return storyData;
+}
+
+export async function getOrGenerateComprehensionQuestions(storyId: number, storyContent: string): Promise<ComprehensionQuestion[]> {
+  const storageKey = `bookibee-questions-${storyId}`;
+
+  // 1. Check localStorage first
+  try {
+    const storedQuestions = localStorage.getItem(storageKey);
+    if (storedQuestions) {
+      return JSON.parse(storedQuestions);
+    }
+  } catch (error) {
+    console.warn("Could not read questions from localStorage", error);
+  }
+
+  // 2. Generate if not in cache
+  const model = 'gemini-2.5-pro';
+  const instruction = `You are a helpful assistant for a children's reading app. 
+  Based on the following story, create 3 simple comprehension questions that a child aged 4-8 can answer.
+  The questions should test their understanding of the main characters, events, or details in the story.
+  Return the questions and their answers in a specific JSON format.
+  
+  The JSON object must be an array of objects, where each object has two fields:
+  1. "question": The question text (string).
+  2. "answer": A short, clear answer to the question (string).
+  
+  Story Content:
+  ---
+  ${storyContent}
+  ---
+  
+  Generate exactly 3 questions.`;
+
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: instruction,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            answer: { type: Type.STRING }
+          },
+          required: ["question", "answer"]
+        }
+      }
+    }
+  });
+
+  const jsonText = response.text.trim();
+  const questionsData = JSON.parse(jsonText) as ComprehensionQuestion[];
+
+  // Basic validation
+  if (!Array.isArray(questionsData) || questionsData.some(q => !q.question || !q.answer)) {
+    throw new Error("Invalid questions format received from API.");
+  }
+  
+  // 3. Cache the result in localStorage
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(questionsData));
+  } catch (error) {
+    console.warn("Could not write questions to localStorage", error);
+  }
+
+  return questionsData;
+}
+
 
 // Fix: Implemented clearCaches to clear all in-memory session caches.
 export function clearCaches(): void {

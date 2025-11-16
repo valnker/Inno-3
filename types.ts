@@ -1,3 +1,8 @@
+export interface ComprehensionQuestion {
+  question: string;
+  answer: string;
+}
+
 export interface Story {
   id: number;
   title: string;
@@ -6,6 +11,7 @@ export interface Story {
   color: string;
   hoverColor: string;
   coverImage: string;
+  questions?: ComprehensionQuestion[];
 }
 
 export interface WordBubbleInfo {

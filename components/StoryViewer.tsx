@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import type { Story, WordBubbleInfo, WordCounts } from '../types';
+import type { Story, WordBubbleInfo, WordCounts, ComprehensionQuestion } from '../types';
 import { WordBubble } from './WordBubble';
 import { WordStats } from './WordStats';
+import { getOrGenerateComprehensionQuestions } from '../services/geminiService';
 
 interface StoryViewerProps {
   story: Story;
@@ -13,6 +14,14 @@ interface StoryViewerProps {
 export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onBack, wordCounts, onWordTapped }) => {
   const [bubbleInfo, setBubbleInfo] = useState<WordBubbleInfo | null>(null);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
+
+  // State for comprehension questions
+  const [questions, setQuestions] = useState<ComprehensionQuestion[] | null>(null);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [showQuestions, setShowQuestions] = useState(false);
+  const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
+
 
   const handleWordClick = (e: React.MouseEvent<HTMLSpanElement>, word: string, context: string) => {
     e.stopPropagation();
@@ -27,6 +36,39 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onBack, wordCou
   
   const closeBubble = () => {
       setBubbleInfo(null);
+  };
+
+  const loadQuestions = () => {
+    if (questions || isLoadingQuestions || questionsError) return;
+
+    setIsLoadingQuestions(true);
+    getOrGenerateComprehensionQuestions(story.id, story.content.join('\n'))
+      .then(setQuestions)
+      .catch(err => {
+        console.error("Failed to load questions:", err);
+        setQuestionsError("Could not load the questions right now. Please try again later.");
+      })
+      .finally(() => setIsLoadingQuestions(false));
+  };
+
+  const handleToggleQuestions = () => {
+    const shouldShow = !showQuestions;
+    setShowQuestions(shouldShow);
+    if (shouldShow) {
+      loadQuestions();
+    }
+  };
+  
+  const toggleAnswer = (index: number) => {
+    setRevealedAnswers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   const renderParagraph = (paragraph: string, pIndex: number) => {
@@ -142,6 +184,58 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onBack, wordCou
                 </p>
               ))}
             </div>
+
+            {/* START: Comprehension Questions Section */}
+            <div className="mt-12">
+              {!showQuestions && (
+                <div className="text-center">
+                  <button
+                    onClick={handleToggleQuestions}
+                    className="bg-purple-500 text-white font-bold py-3 px-8 rounded-full hover:bg-purple-600 transition-transform transform hover:scale-105 shadow-lg"
+                  >
+                    Check Your Understanding ✨
+                  </button>
+                </div>
+              )}
+
+              {showQuestions && (
+                <div className="p-4 sm:p-6 bg-purple-50 border-2 border-purple-200 rounded-2xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-purple-800 text-center flex-grow">Let's see what you remember!</h2>
+                    <button onClick={handleToggleQuestions} className="text-gray-400 hover:text-gray-700 p-1 rounded-full" aria-label="Hide questions">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                       </svg>
+                    </button>
+                  </div>
+                  
+                  {isLoadingQuestions && <p className="text-center text-gray-600">Loading questions...</p>}
+                  {questionsError && <p className="text-center text-red-600">{questionsError}</p>}
+                  {questions && (
+                    <ul className="space-y-6">
+                      {questions.map((q, index) => (
+                        <li key={index} className="bg-white p-4 rounded-lg shadow">
+                          <p className="text-lg font-semibold text-gray-800 mb-3">{index + 1}. {q.question}</p>
+                          <button
+                            onClick={() => toggleAnswer(index)}
+                            className="text-sm font-bold text-purple-600 hover:text-purple-800"
+                          >
+                            {revealedAnswers.has(index) ? 'Hide Answer' : 'Show Answer'}
+                          </button>
+                          {revealedAnswers.has(index) && (
+                            <p className="mt-3 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
+                              {q.answer}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* END: Comprehension Questions Section */}
+
           </div>
         </article>
       </div>
