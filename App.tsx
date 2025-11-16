@@ -281,20 +281,6 @@ const App: React.FC = () => {
 
       <main className="max-w-6xl mx-auto relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <div
-                key="create-story"
-                className="group bg-white rounded-2xl shadow-lg cursor-pointer transform hover:-translate-y-2 transition-transform duration-300 overflow-hidden flex flex-col items-center justify-center border-4 border-dashed border-sky-300 hover:border-sky-400 hover:bg-sky-50 min-h-[224px]"
-                onClick={() => setIsCreateModalOpen(true)}
-                aria-label="Create a new story"
-                role="button"
-            >
-                <div className="text-sky-500 group-hover:text-sky-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                </div>
-                <p className="mt-4 text-lg font-bold text-gray-700">Create a New Story</p>
-            </div>
             {stories.map(story => (
             <div 
                 key={story.id} 
@@ -346,6 +332,20 @@ const App: React.FC = () => {
                 </div>
             </div>
             ))}
+            <div
+                key="create-story"
+                className="group bg-white rounded-2xl shadow-lg cursor-pointer transform hover:-translate-y-2 transition-transform duration-300 overflow-hidden flex flex-col items-center justify-center border-4 border-dashed border-sky-300 hover:border-sky-400 hover:bg-sky-50 min-h-[224px]"
+                onClick={() => setIsCreateModalOpen(true)}
+                aria-label="Create a new story"
+                role="button"
+            >
+                <div className="text-sky-500 group-hover:text-sky-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+                <p className="mt-4 text-lg font-bold text-gray-700">Create a New Story</p>
+            </div>
         </div>
       </main>
 
