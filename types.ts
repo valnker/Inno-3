@@ -6,11 +6,12 @@ export interface ComprehensionQuestion {
 export interface Story {
   id: number;
   title: string;
-  level: 'Easy' | 'Medium' | 'Hard';
+  level: 'Easy' | 'Medium' | 'Hard' | 'Super Hard';
   content: string[];
   color: string;
   hoverColor: string;
   coverImage: string;
+  coverPrompt?: string;
   questions?: ComprehensionQuestion[];
 }
 

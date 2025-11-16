@@ -8,6 +8,10 @@ interface CreateStoryModalProps {
 }
 
 type ModalMode = 'prompt' | 'loading' | 'error';
+type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+
+const cefrLevels: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
 
 const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => (
     <div className="flex flex-col items-center justify-center gap-4 text-gray-600 h-64">
@@ -29,15 +33,9 @@ const ErrorDisplay: React.FC<{ message: string; onRetry: () => void }> = ({ mess
   </div>
 );
 
-const PROMPT_SUGGESTIONS = [
-    "A squirrel who is afraid of heights",
-    "A friendly ghost who loves to cook",
-    "A magical paintbrush that brings drawings to life",
-    "Two best friends who are a cat and a dog"
-];
-
 export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onStoryCreated }) => {
     const [prompt, setPrompt] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState<CefrLevel>('A1');
     const [mode, setMode] = useState<ModalMode>('prompt');
     const [error, setError] = useState<string | null>(null);
 
@@ -46,9 +44,26 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onS
         setMode('loading');
         setError(null);
         try {
-            const storyData = await generateStory(prompt);
-            await onStoryCreated(storyData);
-            // The onClose will be handled by the parent component after story is created
+            const { title, content } = await generateStory(prompt, selectedLevel);
+            
+            let storyLevel: Story['level'];
+            switch (selectedLevel) {
+                case 'A1':
+                    storyLevel = 'Easy';
+                    break;
+                case 'A2':
+                    storyLevel = 'Medium';
+                    break;
+                case 'B1':
+                case 'B2':
+                    storyLevel = 'Hard';
+                    break;
+                default: // C1 and C2
+                    storyLevel = 'Super Hard';
+            }
+
+            await onStoryCreated({ title, content, level: storyLevel });
+            // The parent component is responsible for closing the modal now
         } catch (err) {
             let message = 'Could not create the story.';
             if (err instanceof Error) {
@@ -82,22 +97,29 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onS
                                 id="prompt-textarea"
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                className="w-full h-28 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
+                                className="w-full h-24 p-3 border border-gray-500 bg-gray-700 text-white placeholder-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
                                 placeholder="e.g., A brave little bee on a big adventure"
                                 aria-label="Story prompt input"
                             />
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {PROMPT_SUGGESTIONS.map(suggestion => (
-                                <button
-                                    key={suggestion}
-                                    onClick={() => setPrompt(suggestion)}
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200 transition-colors"
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
+
+                        <div>
+                            <label className="font-semibold text-gray-700 mb-2 block">
+                                Select a language level (CEFR):
+                            </label>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                {cefrLevels.map(level => (
+                                    <button
+                                        key={level}
+                                        onClick={() => setSelectedLevel(level)}
+                                        className={`p-3 border-2 rounded-lg font-bold transition-colors ${selectedLevel === level ? 'bg-amber-400 border-amber-500 text-white' : 'bg-white border-gray-300 hover:border-amber-400'}`}
+                                    >
+                                        {level}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+
                          <button
                             onClick={handleGenerate}
                             disabled={!prompt.trim()}

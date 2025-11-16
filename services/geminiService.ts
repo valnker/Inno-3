@@ -14,6 +14,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 // In-memory caches for the current session to avoid re-processing from localStorage
 const imageCache = new Map<string, string>();
 const audioCache = new Map<string, AudioBuffer>();
+const storyAudioCache = new Map<number, AudioBuffer>();
 
 // Words for feelings, states, or abstract ideas.
 // These will be generated as simple, context-free cartoon illustrations.
@@ -183,6 +184,60 @@ export async function generateAudioForWord(word: string): Promise<AudioBuffer> {
     throw new Error("Audio generation failed.");
 }
 
+export async function generateAudioForStory(storyId: number, storyContent: string): Promise<AudioBuffer> {
+    const cacheKey = storyId;
+
+    // 1. Check in-memory cache
+    if (storyAudioCache.has(cacheKey)) {
+        return storyAudioCache.get(cacheKey)!;
+    }
+
+    // 2. Check localStorage
+    const storageKey = `bookibee-story-audio-${cacheKey}`;
+    try {
+        const storedAudio = localStorage.getItem(storageKey);
+        if (storedAudio) {
+            const buffer = await decodeAudioData(decode(storedAudio), getAudioContext(), 24000, 1);
+            storyAudioCache.set(cacheKey, buffer);
+            return buffer;
+        }
+    } catch (error) {
+        console.warn("Could not read story audio from localStorage", error);
+    }
+    
+    // 3. Generate audio
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: storyContent }] }],
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: 'Zephyr' },
+                },
+            },
+        },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+        const audioBuffer = await decodeAudioData(decode(base64Audio), getAudioContext(), 24000, 1);
+        
+        // Cache it
+        storyAudioCache.set(cacheKey, audioBuffer);
+        try {
+            localStorage.setItem(storageKey, base64Audio);
+        } catch (error) {
+            console.warn("Could not write story audio to localStorage", error);
+        }
+        
+        return audioBuffer;
+    }
+
+    throw new Error("Story audio generation failed.");
+}
+
+
 // Fix: Added summarizeStoryForImagePrompt to generate a concise image prompt from story content.
 export async function summarizeStoryForImagePrompt(title: string, content: string): Promise<string> {
   const prompt = `You are a creative assistant for a children's storybook app. Your task is to summarize a story into a concise, vivid, and child-friendly image prompt for generating a cover illustration. The prompt should capture the main character, the setting, and the key action or mood of the story.
@@ -227,20 +282,23 @@ export async function generateStoryCover(prompt: string): Promise<string> {
     throw new Error("Story cover generation failed: no image data in response.");
 }
 
-export async function generateStory(userPrompt: string): Promise<Omit<Story, 'id' | 'color' | 'hoverColor' | 'coverImage'>> {
+export async function generateStory(userPrompt: string, cefrLevel: string): Promise<{ title: string; content: string[] }> {
   const model = 'gemini-2.5-pro';
 
   const instruction = `You are a creative and talented author who writes short stories for children aged 4-8. 
-  Your task is to generate a new story based on a user's prompt.
+  Your task is to generate a new story based on a user's prompt and a specified language difficulty level.
   The story must be engaging, age-appropriate, and have a positive or gentle message.
   You must return the story in a specific JSON format.
   
-  The JSON object must contain three fields:
-  1.  "title": A creative and short title for the story (string).
-  2.  "level": The estimated reading difficulty. It MUST be one of three values: 'Easy', 'Medium', or 'Hard' (string).
-  3.  "content": The story text, split into an array of short paragraphs (string[]). Aim for 2-4 paragraphs.
+  The language complexity of the story MUST correspond to the CEFR level: ${cefrLevel}.
+  - A1: Very basic words and simple sentences.
+  - A2: Basic vocabulary, compound sentences.
+  - B1: Intermediate vocabulary, more complex sentence structures.
+  - B2 and above: Richer vocabulary, complex and varied sentences.
   
-  Analyze the user's prompt and create a story that is simple for 'Easy', has more complex sentences for 'Medium', and uses richer vocabulary for 'Hard'.
+  The JSON object must contain two fields:
+  1.  "title": A creative and short title for the story (string).
+  2.  "content": The story text, split into an array of short paragraphs (string[]). Aim for 2-4 paragraphs.
   
   User's prompt: "${userPrompt}"`;
 
@@ -253,13 +311,12 @@ export async function generateStory(userPrompt: string): Promise<Omit<Story, 'id
         type: Type.OBJECT,
         properties: {
           title: { type: Type.STRING },
-          level: { type: Type.STRING, enum: ['Easy', 'Medium', 'Hard'] },
           content: {
             type: Type.ARRAY,
             items: { type: Type.STRING }
           }
         },
-        required: ["title", "level", "content"]
+        required: ["title", "content"]
       }
     }
   });
@@ -268,7 +325,7 @@ export async function generateStory(userPrompt: string): Promise<Omit<Story, 'id
   const storyData = JSON.parse(jsonText);
 
   // Basic validation
-  if (!storyData.title || !storyData.level || !storyData.content || !Array.isArray(storyData.content)) {
+  if (!storyData.title || !storyData.content || !Array.isArray(storyData.content)) {
     throw new Error("Invalid story format received from API.");
   }
 
@@ -348,5 +405,6 @@ export async function getOrGenerateComprehensionQuestions(storyId: number, story
 export function clearCaches(): void {
     imageCache.clear();
     audioCache.clear();
+    storyAudioCache.clear();
     console.log("Session caches cleared.");
 }
